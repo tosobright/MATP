@@ -1,0 +1,650 @@
+﻿Version=6
+NumberOfModules=1
+Module1=SubFunc
+Build1=Default,cn.soshare.me.flowcollect
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: http://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="5" android:targetSdkVersion="14"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~SetApplicationAttribute(android:theme, "@android:style/Theme.Holo")~\n~'End of default text.~\n~'mssql~\n~AddPermission("android.permission.INTERNET")~\n~AddPermission("android.permission.ACCESS_NETWORK_STATE")~\n~AddPermission("com.ibm.jsse.IBMJSSEProvider")~\n~'zxing~\n~'AddManifestText(<uses-feature android:name="android.hardware.telephony" android:required="false" />)~\n~AddManifestText(<uses-feature android:name="android.hardware.camera" android:required="false" />)~\n~AddManifestText(<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />)~\n~AddManifestText(<uses-feature android:name="android.hardware.camera.flash" android:required="false" />)~\n~AddPermission("android.permission.WAKE_LOCK")~\n~AddPermission("android.permission.DEVICE_POWER")~\n~AddPermission("android.permission.VIBRATE")~\n~AddPermission("android.permission.CAMERA")~\n~AddPermission("android.permission.FLASHLIGHT")~\n~AddPermission("android.hardware.camera")~\n~AddApplicationText(<activity android:name="ice.zxing.CaptureActivity"~\n~			android:screenOrientation="portrait" android:configChanges="orientation|keyboardHidden"~\n~			android:theme="@android:style/Theme.NoTitleBar.Fullscreen"~\n~			android:windowSoftInputMode="stateAlwaysHidden">~\n~		</activity>)~\n~'statusbar~\n~AddPermission(android.permission.EXPAND_STATUS_BAR)~\n~AddPermission(android.permission.SYSTEM_OVERLAY_WINDOW)~\n~AddPermission(android.permission.SYSTEM_ALERT_WINDOW)
+IconFile=
+NumberOfFiles=2
+File1=load.png
+File2=login.bal
+NumberOfLibraries=7
+Library1=core
+Library2=ime
+Library3=stringutils
+Library4=animation
+Library5=reflection
+Library6=javaobject
+Library7=phone
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: FlowCollect
+	#VersionCode: 1
+	#VersionName: 1.0
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: portrait
+	#CanInstallToExternalStorage: False
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: False
+	#IncludeTitle: False
+#End Region
+
+Sub Process_Globals
+	'These global variables will be declared once when the application starts.
+	'These variables can be accessed from all modules.
+	Dim db As MSSQL
+	Dim lst_result As List
+	Dim tim As Timer
+	Dim str_setbuff As String
+	Dim Str_Permit As String
+	Dim phone As Phone
+	Dim Battery As JavaObject
+End Sub
+
+Sub Globals
+	'These global variables will be redeclared each time the activity is created.
+	'These variables can only be accessed from this module.
+	Private Btn_Login As Button
+	Private Edt_PWD As EditText
+	Private Edt_User As EditText
+	Private Pnl_Login As Panel
+	
+	Dim scrview(20) As ScrollView
+	'Dim Pnl_Sel As Panel
+	Dim lbl_arr(30) As Label
+	Dim lbl_txt(30) As String
+	Dim edt_arr(30) As EditText 
+	
+	Dim Spn_Sequence As Spinner
+	Dim Spn_InOutType As Spinner
+	
+	Dim Btn_Post As Button
+	
+	Dim ime As IME
+	Dim zx As JhsIceZxing1
+	
+	Private Pnl_Title As Panel
+	Private Lbl_Action As Label
+	Private Lbl_Set As Label
+	Private Lbl_Title As Label
+	Private Lbl_Time As Label
+	Private Lbl_User As Label
+	Private Lbl_Status As Label
+	
+	Dim Lst_Func As ListView
+	Dim Lst_Set As ListView
+				
+	Dim wifi As MLwifi
+	Dim wifiscan As MLScan
+	Dim Pnl_WifiSet As Panel
+	Dim Spn_WifiList As Spinner
+	Dim Btn_WifiConnect As Button	
+End Sub
+
+#If JAVA
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
+
+public float getBatteryLevel() {
+    Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+    int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+    int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);  
+
+    return ((float)level / (float)scale) * 100.0f;
+}  
+
+#End If
+
+Sub Activity_Create(FirstTime As Boolean)
+	'Do not forget to load the layout file created with the visual designer. For example:
+	'Activity.LoadLayout("Layout1")
+	Activity.LoadLayout("login")
+	Pnl_Title.Visible = False
+	Pnl_Login.Visible = False
+	Lbl_Time.Visible = False
+	Lbl_User.Visible = False
+	Lbl_Status.Visible = False
+	If FirstTime Then
+		Dim lbl_wel As Label
+		lbl_wel.Initialize("")
+		Activity.addview(lbl_wel,10%x,40%y,80%x,20%y)
+		SubFunc.Lbl_AutoSize(lbl_wel,0.4)
+		lbl_wel.Text = "Welcome"
+		lbl_wel.Gravity = Gravity.CENTER
+		PanelSet
+		SubFunc.Waitms(2000)
+		lbl_wel.Visible = False
+		Battery.InitializeContext
+		DisableStrictMode
+	Else
+		PanelSet
+	End If
+	Pnl_Title.Visible = True
+	Pnl_Login.Visible = True
+	Lbl_Time.Visible = True
+	Lbl_User.Visible = True
+	Lbl_Status.Visible = True
+
+	
+	db.setDatabase("ms2057631.xincache1.cn","ms2057631","ms2057631","taosha123")
+		
+	ime.Initialize("ime")
+	ime.AddHeightChangedEvent
+	
+	tim.Initialize("tim",200)
+	tim.Enabled = True
+		
+	AddOverlay
+End Sub
+
+Sub DisableStrictMode
+   Dim jo As JavaObject
+   jo.InitializeStatic("android.os.Build.VERSION")
+   If jo.GetField("SDK_INT") > 9 Then
+     Dim policy As JavaObject
+     policy = policy.InitializeNewInstance("android.os.StrictMode.ThreadPolicy.Builder", Null)
+     policy = policy.RunMethodJO("permitAll", Null).RunMethodJO("build", Null)
+     Dim sm As JavaObject
+     sm.InitializeStatic("android.os.StrictMode").RunMethod("setThreadPolicy", Array(policy))
+   End If
+End Sub
+
+#Region Code to disable access to the StatusBar
+'Sub Activity_WindowFocusChanged (Focused As Boolean)
+'	'expandCollapseStatusBar(False)
+'End Sub
+
+Sub expandCollapseStatusBar(choice As Boolean )
+    Dim r As Reflector 
+    r.Target =r.GetContext 
+    r.target=r.RunMethod2("getSystemService","statusbar","java.lang.String")
+    If choice Then
+        r.RunMethod ("expandNotificationsPanel")
+    Else
+        r.RunMethod ("collapsePanels")
+    End If
+End Sub
+'overlay statusbar
+Sub AddOverlay
+	Dim mView As Label
+    mView.Initialize("")
+    mView.Text = "BYD IGBT Collect System"
+	mView.Color = Colors.RGB(0xF4,0x3A,0x3A)
+	mView.TextColor = Colors.Black
+    Dim mlp As JavaObject
+    Dim vtype As Int = -1, pixelFormat As Int = -3
+    mlp.InitializeNewInstance("android.view.WindowManager$LayoutParams", Array(vtype, StatusBarHeight, 2010,296, pixelFormat))
+    mlp.SetField("gravity", Bit.Or(Gravity.TOP, Gravity.CENTER))
+    Dim windowManager As JavaObject = GetContext.RunMethod("getSystemService", Array("window"))
+    windowManager.RunMethod("addView", Array(mView, mlp))
+End Sub
+
+Sub StatusBarHeight As Int
+ 	Dim r As Reflector 
+	Dim JO As JavaObject
+	R.Target = R.GetContext
+	JO = R.RunMethod("getResources")
+	Dim ResourceID As Int = JO.RunMethod("getIdentifier", Array As Object("status_bar_height", "dimen", "android"))
+	Dim Size As Int
+	If ResourceID > 0 Then
+	     Size = JO.RunMethod("getDimensionPixelSize", Array As Object(ResourceID))
+	End If
+	Return Size
+End Sub
+
+Sub GetContext As JavaObject
+    Return GetBA.GetField("context")
+End Sub
+
+Sub GetBA As JavaObject
+    Dim jo As JavaObject
+    Dim cls As String = Me
+    cls = cls.SubString("class ".Length)
+    jo.InitializeStatic(cls)
+    Return jo.GetFieldJO("processBA")
+End Sub
+#End Region
+
+Sub PanelSet
+	'Titel''''''''''''''''''''''''''''''
+	Lbl_Action.Text = ""
+	Lbl_Title.Text = "用户登录"
+	Lbl_Set.Text = "设置"
+	Lbl_Action.Gravity = Gravity.CENTER
+	Lbl_Title.Gravity = Gravity.CENTER
+	Lbl_Set.Gravity = Gravity.CENTER
+	Lbl_Action.TextColor = Colors.Black
+	Lbl_Title.TextColor = Colors.Black
+	Lbl_Set.TextColor = Colors.Black
+	
+	'Time''''''''''''''''''''''''''''''
+	Lbl_Time.Gravity = Gravity.CENTER
+	Lbl_Time.TextColor = Colors.Black
+	Lbl_Time.Color = Colors.RGB(0xF4,0x3A,0x3A)
+	Lbl_User.Gravity = Gravity.CENTER_VERTICAL + Gravity.LEFT
+	Lbl_User.TextColor = Colors.Black
+	Lbl_User.Color = Colors.RGB(0xF4,0x3A,0x3A)
+	Lbl_Status.Gravity = Gravity.CENTER_VERTICAL + Gravity.RIGHT 
+	Lbl_Status.TextColor = Colors.Black
+	Lbl_Status.Color = Colors.RGB(0xF4,0x3A,0x3A)
+
+	'Login''''''''''''''''''''''''''''''
+	Edt_User.Color = Colors.Gray
+	Edt_User.Hint = "请输入用户名"
+	Edt_User.HintColor = Colors.White
+	Edt_PWD.Color = Colors.Gray
+	Edt_PWD.Hint = "请输入密码"
+	Edt_PWD.HintColor = Colors.White
+	Edt_PWD.PasswordMode = True
+	Btn_Login.Text = "Login"
+	
+	'Funclist''''''''''''''''''''''''''''''
+	Lst_Func.Initialize("Lst_Func")
+	Activity.AddView(Lst_Func,0,7%y,100%x,88%y)
+	Lst_Func.Color = Colors.LightGray
+	Lst_Func.AddSingleLine("IGBT 模块随工单")
+	Lst_Func.AddSingleLine("IGBT DBC随工单")
+	Lst_Func.AddSingleLine("IGBT 工单查询")
+	Lst_Func.Visible = False
+	
+	'scrview''''''''''''''''''''''''''''''
+	scrview(0).Initialize(100%y)
+	Activity.AddView(scrview(0),0,7%y,100%x,88%y)
+	scrview(0).Visible = False
+	scrview(0).Color = Colors.LightGray
+	lbl_txt = Array As String("工单(单击扫描)","作业员","机台编号","产品型号","产品批号","订单编号","订单总量", _
+								"订单类型","订单等级","本单数量", "起始模块编号","工序名称","进出类型", _
+								"接料数量","加入数量","作业时间","备注")
+	For i = 0 To lbl_txt.Length - 1
+		lbl_arr(i).Initialize("lbl_arr" & i)
+		scrview(0).Panel.AddView(lbl_arr(i),1%y,2%y +12%y * i,35%x,10%y)
+		lbl_arr(i).Text = lbl_txt(i)
+		lbl_arr(i).TextColor = Colors.Black
+		Select i
+			Case 11
+				Spn_Sequence.Initialize("")
+				scrview(0).Panel.AddView(Spn_Sequence,35%x,0 +12%y * i,60%x,10%y)
+				Spn_Sequence.AddAll(Array As String("二次焊接","超声波扫描","模块清洗","模块烘烤", _
+									"二次焊接全检","半成品测试","涂胶","密封胶固化","二次绑线","三次绑线", _
+									"三次绑线全检","三次绑线抽检","灌胶","硅凝胶固化","装盖板(s)","模块打标", _
+									"振动筛选","高温反偏","绝缘测试","外观清理","成品终测","弧度测试","生产终检", _
+									"FQC抽检","数据核对"))
+				Spn_Sequence.Color = Colors.Gray
+			Case 12
+				Spn_InOutType.Initialize("")
+				scrview(0).Panel.AddView(Spn_InOutType,35%x,1%y +12%y * i,60%x,10%y)
+				Spn_InOutType.AddAll(Array As String("进料","出料"))
+				Spn_InOutType.Color = Colors.Gray
+			Case Else
+				edt_arr(i).Initialize("edt_arr" & i)
+				If i >=3 And i<=10 Then edt_arr(i).Enabled = False
+				If i = 13 Or i = 14 Then edt_arr(i).InputType = edt_arr(i).INPUT_TYPE_NUMBERS
+				If i = 15 Then edt_arr(i).Enabled = False
+				If i = lbl_txt.Length - 1 Then
+					scrview(0).Panel.AddView(edt_arr(i),35%x,1%y +12%y * i,60%x,30%y)
+				Else
+					scrview(0).Panel.AddView(edt_arr(i),35%x,1%y +12%y * i,60%x,10%y)
+				End If
+				edt_arr(i).Color = Colors.Gray
+				edt_arr(i).Tag = "edt_arr" & i
+		End Select		
+	Next
+	Btn_Post.Initialize("Btn_Post")
+	scrview(0).Panel.AddView(Btn_Post,30%x,12%y * lbl_txt.Length +21%y,40%x,10%y)
+	Btn_Post.Text = "提交"
+	scrview(0).Panel.Height = 12%y * lbl_txt.Length +35%y
+	
+	'Set''''''''''''''''''''''''''''''
+	Lst_Set.Initialize("Lst_Set")
+	Activity.AddView(Lst_Set,0,7%y,100%x,88%y)
+	Lst_Set.Color = Colors.LightGray
+	Lst_Set.Visible = False
+	Lst_Set.AddSingleLine("无线网络设置")
+	Lst_Set.AddSingleLine("服务器设置")
+	Lst_Set.AddSingleLine("息屏时间设置")
+	Lst_Set.AddSingleLine("系统参数设置")
+	Lst_Set.Visible = False
+	
+	'Wifi Set'''''''''''''''''''''''''
+	Pnl_WifiSet.Initialize("")
+	Activity.AddView(Pnl_WifiSet,5%x,35%y,90%x,35%y)
+	Pnl_WifiSet.Visible = False
+	Pnl_WifiSet.Color =Colors.Gray	
+	Spn_WifiList.Initialize("Spn_WifiList")
+	Pnl_WifiSet.AddView(Spn_WifiList,10%X,5%Y,70%X,8%Y)
+	Btn_WifiConnect.Initialize("Btn_WifiConnect")
+	Pnl_WifiSet.AddView(Btn_WifiConnect,30%X,20%Y,30%X,10%Y)
+	Btn_WifiConnect.Text = "Connect"
+
+End Sub
+
+Sub Activity_Resume
+
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
+
+Sub Activity_KeyPress (KeyCode As Int) As Boolean 'Return True to consume the event
+	If KeyCode = KeyCodes.KEYCODE_BACK Then
+		Return True
+	End If
+End Sub
+
+Sub TitleTxt(t As String)
+	Lbl_Title.Text = t
+	Select Lbl_Title.Text
+		Case "用户登录"
+			Lbl_Action.Text = ""
+			Lbl_Set.Text = "设置"
+			Pnl_Login.Visible = True
+			scrview(0).Visible = False
+			Lst_Func.Visible = False
+			Lst_Set.Visible = False
+			Pnl_WifiSet.Visible = False
+
+		Case "功能列表"
+			Lbl_Action.Text = "<<退出"
+			Lbl_Set.Text = "设置"
+			Pnl_Login.Visible = False
+			scrview(0).Visible = False
+			Lst_Set.Visible = False
+			Lst_Func.Visible = True
+			Pnl_WifiSet.Visible = False
+
+		Case "IGBT模块随工单"
+			Lbl_Action.Text = "<<返回"
+			Lbl_Set.Text = "设置"
+			Pnl_Login.Visible = False
+			Lst_Func.Visible = False
+			Lst_Set.Visible = False
+			scrview(0).Visible = True
+			Pnl_WifiSet.Visible = False
+		
+		Case "设置"
+			Lbl_Action.Text = "<<返回"
+			Lbl_Set.Text = ""
+			Pnl_Login.Visible = False
+			scrview(0).Visible = False
+			Lst_Set.Visible = True
+			Lst_Func.Visible = False
+			Pnl_WifiSet.Visible = False
+
+	End Select
+End Sub
+
+#Region title&time&Btn_Login
+Sub tim_Tick
+	Lbl_Status.Text = NumberFormat(Battery.RunMethod("getBatteryLevel", Null),0,0)  & "%"
+	expandCollapseStatusBar(False)
+	Lbl_Time.Text = DateTime.GetYear(DateTime.now) & "-" _
+				& NumberFormat(DateTime.GetMonth(DateTime.now),2,0) & "-" _
+				& NumberFormat(DateTime.GetDayOfMonth(DateTime.now),2,0) & " " _
+				& NumberFormat(DateTime.GetHour(DateTime.now),2,0) & ":" _
+				& NumberFormat(DateTime.GetMinute(DateTime.now),2,0) & ":" _
+				& NumberFormat(DateTime.GetSecond(DateTime.now),2,0)
+End Sub
+
+Sub Lbl_Set_Click
+	If Edt_User.Text.Trim = "Admin" And Edt_PWD.Text.Trim = "BYD" Or Str_Permit <> "" Then
+		str_setbuff = Lbl_Title.Text
+		TitleTxt("设置")
+	Else
+		Msgbox("无操作权限","FlowCollect")
+		Return
+	End If
+End Sub
+
+Sub Lbl_Action_Click
+	Select Lbl_Title.Text
+		Case "用户登录"
+
+		Case "功能列表"
+			If Msgbox2("Exit?","flow","yes","no","",Null) = DialogResponse.CANCEL Then Return
+			Lbl_Title.Text = "用户登录"
+			Str_Permit = ""
+			Lbl_User.Text = ""
+
+		Case "IGBT模块随工单"
+			Lbl_Title.Text = "功能列表"
+		
+		Case "设置"
+			Lbl_Title.Text = str_setbuff
+	End Select
+	TitleTxt(Lbl_Title.Text)
+End Sub
+
+Sub Btn_Login_Up
+	ProgressDialogShow("登录中...")
+	SubFunc.Waitms(500)
+	Try
+		lst_result = db.Query("SELECT * FROM dbo.[user] WHERE id = '" & Edt_User.Text.Trim & "'")
+		SubFunc.Waitms(1000)
+	Catch
+		Msgbox("Server Error","login")
+		ProgressDialogHide
+		Return
+	End Try
+	If lst_result.Size < 2 Then 
+		Msgbox("id error","login")
+		ProgressDialogHide
+		Return		
+	End If
+	Dim s As String
+	s = lst_result.Get(1)
+	s = s.SubString2(s.IndexOf("[") + 1, s.IndexOf("]")).Trim
+	Dim res() As String
+	res =Regex.Split(",",s)
+	If res(1).Trim <> Edt_PWD.Text.Trim Then
+		ProgressDialogHide
+		Msgbox("Password Error","login")
+		Return
+	End If
+	TitleTxt("功能列表")
+	Edt_PWD.Text = ""
+	ProgressDialogHide
+	Str_Permit = res(2).ToLowerCase.Trim
+	Lbl_User.Text = Edt_User.Text
+End Sub
+#End Region
+
+Sub lst_func_ItemClick (Position As Int, Value As Object)
+	Select Position
+		Case 0
+			TitleTxt("IGBT模块随工单")
+			edt_arr(SubFunc.ArraySearch(lbl_txt,"作业员")).Text = Edt_User.Text
+	End Select
+End Sub
+
+#Region Set
+Sub lst_set_ItemClick (Position As Int, Value As Object)
+	Pnl_WifiSet.Visible = False
+	Select Lst_Set.GetItem(Position)
+		Case "无线网络设置"
+			Pnl_WifiSet.Visible = True
+			ProgressDialogShow("正在扫描wifi")
+			wifiscan.startScan("wifiscan")
+		Case "系统参数设置"
+			If Str_Permit = "admin" Then
+				Dim i As Intent
+				i.Initialize("", "")
+				i.SetComponent("com.android.settings/.Settings")
+				StartActivity(i)
+			Else
+				Msgbox("无操作权限","SystemSet")
+			End If
+	End Select
+End Sub
+
+Sub wifiscan_ScanDone(Results() As String, Count As Int)
+	Spn_WifiList.Clear
+	Spn_WifiList.Add("请选择wifi...")
+	Spn_WifiList.AddAll(Results)
+	Spn_WifiList.SelectedIndex = wifisearch(wifi,Spn_WifiList)
+	ProgressDialogHide
+End Sub
+
+Sub wifisearch(w As MLwifi,l As Spinner) As Int
+	If w.SSID <> "" Then 
+		For i = 0  To l.Size - 1
+			If l.GetItem(i).IndexOf(",") > 0 Then
+				If l.GetItem(i).SubString2(0,l.GetItem(i).IndexOf(",")).Trim = w.SSID.Trim Then Return i
+			End If
+		Next
+	End If
+	Return 0
+End Sub
+
+Sub Btn_WifiConnect_Click
+	ProgressDialogShow("正在连接" & Spn_WifiList.SelectedItem)
+	SubFunc.Waitms(1000)
+	If Spn_WifiList.SelectedIndex - 1 <0 Then 
+		Msgbox("无效wifi","WifiConnect")
+		ProgressDialogHide
+		Return
+	End If
+	Try
+		wifiscan.connectToAP(Spn_WifiList.SelectedIndex - 1)
+	Catch
+		Msgbox("连接错误，请重新扫描wifi","WifiConnect")
+	End Try
+	Dim ti As Long   
+	'Return
+	ti = DateTime.Now + (15000)
+	Do While DateTime.Now < ti
+		If wifi.SSID = Spn_WifiList.SelectedItem.SubString2(0,Spn_WifiList.SelectedItem.IndexOf(",")).Trim _
+			And wifi.isWifiConnected = True Then 
+			Msgbox("连接成功","WifiConnect")
+			Pnl_WifiSet.Visible = False
+			ProgressDialogHide
+			Return
+		End If
+		DoEvents
+	Loop 
+	ProgressDialogShow("连接指定wifi失败，自动连接中")  
+	ti = DateTime.Now + (15000)
+	Do While DateTime.Now < ti
+		If wifi.SSID <> "" And wifi.isWifiConnected = True Then 
+			Msgbox("成功连接至：" & wifi.SSID,"WifiConnect")
+			Pnl_WifiSet.Visible = False
+			ProgressDialogHide
+			Return
+		End If
+		DoEvents
+	Loop 
+	Msgbox("连接失败","WifiConnect")
+	ProgressDialogHide
+End Sub
+#End Region
+
+#Region BarCode
+Sub lbl_arr0_Click
+    zx.isportrait = True
+	zx.useFrontCam = False
+	
+	'change these factors between 0 and 1
+	'the library will limit the minimum size to 240 x 240 pixels and the maximum to (screen width) x (screen height pixels)
+    zx.theViewFinderXfactor = 0.7
+	zx.theViewFinderYfactor = 0.5
+	
+	zx.theFrameColor = Colors.Blue
+	zx.theLaserColor = Colors.Yellow
+	zx.theMaskColor = Colors.argb(95, 0, 0, 255)
+	zx.theResultColor = Colors.Green
+	zx.theResultPointColor = Colors.White
+	
+	'set the prompt messages
+	zx.theTopPromptMessage = "条码识别"
+	zx.theTopPromptTextSize = 5%y                            'text size in pixels
+	zx.topPromptColor = Colors.Red
+	zx.topPromptDistanceFromTop = 7%y                        'pixel distance from top
+	
+	zx.theBottomPromptMessage = "单击切换闪光灯"
+	zx.theBottomPromptTextSize = 5%y                         'text size in pixels
+	zx.bottomPromptColor = Colors.Blue
+	zx.bottomPromptDistanceFromBottom = 7%y                  'pixel distance from top
+		
+	zx.BeginScan("myzx")	
+End Sub
+
+Sub myzx_result(atype As String,Values As String)
+	edt_arr(0).Text = Values
+	OrderSelect(Values)
+End Sub
+#End Region
+
+#Region IGBT模块随工单
+Sub Btn_Post_Click
+	ProgressDialogShow("正在提交中...")
+	edt_arr(15).Text = Lbl_Time.Text
+	'INSERT into dbo.ModuleOrder VALUES('EP','toso','no1','二次焊接','进料',10,1,'2016-5-6 10:08:08','test...')
+	Dim sql As String = ""
+	For i = 0 To 2
+		sql = sql & "'" & edt_arr(i).Text & "'" & ","
+	Next
+	sql = sql & "'" & Spn_Sequence.SelectedItem & "'" & ","
+	sql = sql & "'" & Spn_InOutType.SelectedItem & "'" & ","
+	For i = 0 To 2
+		sql = sql & "'" & edt_arr(i + 13).Text & "'" & ","
+	Next
+	sql = sql & "'" & edt_arr(16).Text & "'" 
+	sql = "INSERT into dbo.ModuleOrder VALUES(" & sql & ")"
+	Try
+		db.ExecuteNonQuery(sql,True)
+		SubFunc.Waitms(1000)
+		ProgressDialogHide
+	Catch
+		SubFunc.Waitms(1000)
+		ProgressDialogHide
+		Msgbox("提交失败","Insert")
+		Return
+	End Try	
+	Msgbox("提交成功","Insert")
+End Sub
+
+Sub OrderSelect(order As String)
+	edt_arr(SubFunc.ArraySearch(lbl_txt,"作业时间")).Text = Lbl_Time.Text
+	ProgressDialogShow("正在查询中...")
+	SubFunc.Waitms(500)
+	Try
+		lst_result = db.Query("SELECT Product,BatchNum,IDNum,TotalNum,OrderType,OrderLevel," & _
+							"Number,StartEnd FROM dbo.OrderPlan WHERE [Order] = '" & order & "'")
+		SubFunc.Waitms(1000)
+	Catch
+		ProgressDialogHide
+		Msgbox("Server Error","select")
+		Return
+	End Try
+	If lst_result.Size < 2 Then 
+		ProgressDialogHide
+		Msgbox("Order error","select")
+		Return		
+	End If
+	Dim s As String
+	s = lst_result.Get(1)
+	s = s.SubString2(s.IndexOf("[") + 1, s.IndexOf("]")).Trim
+	Dim res() As String
+	res = Regex.Split(",",s)
+	For i = 0 To 7
+		edt_arr(3+i).Text = res(i).Trim
+	Next
+	ProgressDialogHide
+End Sub
+
+Sub edt_arr0_EnterPressed
+	OrderSelect(edt_arr(0).Text.Trim)
+End Sub
+#End Region
+
+Sub ime_HeightChanged (NewHeight As Int, OldHeight As Int)
+	If NewHeight < OldHeight Then
+		scrview(0).Height = 88%y - OldHeight + NewHeight + 7%y
+	Else
+		scrview(0).Height = 88%y
+	End If
+End Sub

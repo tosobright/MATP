@@ -1,0 +1,5 @@
+ServerName	Port		VI Name
+LoadPnl		31007		Loadpnl
+MainPlatform	31008		TcpServices_Loop
+RunServer	31009		
+UserMgnt	31010		
